@@ -22,15 +22,64 @@ python setup.py install
 - Keras >= 2.2.4
 - Scipy >= 1.2.1
 - Numpy >= 1.16.2
+- Isolearn >= 0.2.0 ([github](https://github.com/johli/isolearn.git))
 
 ### Usage
-Isolearn is centered around data generators, where the generator's task is to transform your sequence data (stored in a Pandas dataframe) and corresponding measurements (e.g. column in the Pandas dataframe, or RNA-Seq count matrix) into numerical input features and output targets.
+SeqProp provides API calls for building PWM generators and downstream sequence predictors as Keras Models.
 
-A simple Keras Data Generator can built using the isolearn.keras package:
+A simple generator pipeline for some (imaginary) predictor can be built as follows:
 ```python
+import keras
+from keras.models import Sequential, Model, load_model
 import isolearn.keras as iso
-import pandas as pd
 import numpy as np
+
+from seqprop.visualization import *
+from seqprop.generator import *
+from seqprop.predictor import *
+from seqprop.optimizer import *
+
+from my.project import load_my_predictor #Function that loads your predictor
+
+#Define Loss Function (Fit predicted output to some target)
+#Also enforce low PWM entropy
+
+target = np.zeros((1, 1))
+target[0, 0] = 5.6 (Arbitrary target)
+
+pwm_entropy_mse = get_target_entropy_sme(pwm_start=0, pwm_end=100, target_bits=1.8)
+
+def loss_func(predictor_outputs) :
+  pwm_logits, pwm, sampled_pwm, predicted_out = predictor_outputs
+  
+  #Create target constant
+  target_out = K.tile(K.constant(target), (K.shape(sampled_pwm)[0], 1))
+  
+  target_cost = (target_out - predicted_out)**2
+  pwm_cost = pwm_entropy_mse(pwm)
+  
+  return K.mean(target_cost + pwm_cost, axis=-1)
+
+#Build Generator Network
+_, seqprop_generator = build_generator(seq_length=100, n_sequences=1, batch_normalize_pwm=True)
+
+#Build Predictor Network and hook it on the generator PWM output tensor
+_, seqprop_predictor = build_predictor(seqprop_generator, load_my_predictor(), n_sequences=1, eval_mode='pwm')
+
+#Build Loss Model (In: Generator seed, Out: Loss function)
+_, loss_model = build_loss_model(seqprop_predictor, loss_func)
+
+#Specify Optimizer to use
+opt = keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999)
+
+#Compile Loss Model (Minimize self)
+loss_model.compile(loss=lambda true, pred: pred, optimizer=opt)
+
+#Fit Loss Model
+loss_model.fit([], np.ones((1, 1)), epochs=1, steps_per_epoch=1000)
+
+#Retrieve optimized PWMs and predicted (optimized) target
+_, optimized_pwm, _, predicted_out = seqprop_predictor.predict(x=None, steps=1)
 
 ```
 
