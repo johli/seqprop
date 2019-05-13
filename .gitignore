@@ -3,6 +3,20 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+*.h5
+
+*.pickle
+*.csv
+*.mat
+*.npy
+*.npz
+
+*.bed
+*.fa
+
+#No pickle files
+*.hdf5
+
 # C extensions
 *.so
 
@@ -102,3 +116,6 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+#No temp
+*~
