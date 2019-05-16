@@ -1,3 +1,5 @@
+![SeqProp Logo](https://github.com/johli/seqprop/blob/master/SeqProp_Logo.jpg?raw=true)
+
 # SeqProp
 Stochastic Sequence Propagation - A Keras Model for generating functional RNA based on a predictor
 
