@@ -104,7 +104,7 @@ def initialize_sequences(generator, init_sequences, p_init) :
 	encoder = iso.OneHotEncoder(seq_length=len(init_sequences[0]))
 	onehot_sequences = np.concatenate([encoder(init_sequence).reshape((1, len(init_sequence), 4, 1)) for init_sequence in init_sequences], axis=0)
 
-	onehot_logits = generator.get_layer('policy_pwm').reshape((len(init_sequences), len(init_sequences[0]), 4, 1))
+	onehot_logits = generator.get_layer('policy_pwm').get_weights()[0].reshape((len(init_sequences), len(init_sequences[0]), 4, 1))
 
 	on_logit = np.log(p_init / (1. - p_init))
 
@@ -115,6 +115,7 @@ def initialize_sequences(generator, init_sequences, p_init) :
 		init_sequence = init_sequences[i]
 
 		for j in range(len(init_sequence)) :
+			nt_ix = -1
 			if init_sequence[j] == 'A' :
 				nt_ix = 0
 			elif init_sequence[j] == 'C' :
@@ -125,7 +126,8 @@ def initialize_sequences(generator, init_sequences, p_init) :
 				nt_ix = 3
 
 			onehot_logits[i, j, :, :] = off_logit
-			onehot_logits[i, j, nt_ix, :] = on_logit
+			if nt_ix != -1 :
+				onehot_logits[i, j, nt_ix, :] = on_logit
 
 	generator.get_layer('policy_pwm').set_weights([onehot_logits.reshape(1, -1)])
 
@@ -162,7 +164,7 @@ def build_generator(seq_length, n_sequences=1, n_samples=None, sequence_template
 
 	#Batch Normalize PWM Logits
 	if batch_normalize_pwm :
-	   onehot_logits = BatchNormalization(axis=2, name='policy_batch_norm')(onehot_logits)
+		onehot_logits = BatchNormalization(axis=2, name='policy_batch_norm')(onehot_logits)
 	
 	#Add Template and Multiply Mask
 	pwm_logits = masking_layer([onehot_logits, onehot_template, onehot_mask])
@@ -196,7 +198,7 @@ def build_generator(seq_length, n_sequences=1, n_samples=None, sequence_template
 		initialize_sequence_templates(generator_model, sequence_templates)
 
 	if init_sequences is not None :
-		initialize_sequences(generator, init_sequences, p_init)
+		initialize_sequences(generator_model, init_sequences, p_init)
 
 	#Lock all generator layers except policy layers
 	for generator_layer in generator_model.layers :
