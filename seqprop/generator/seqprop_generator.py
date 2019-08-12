@@ -136,7 +136,7 @@ def initialize_sequences(generator, init_sequences, p_init) :
 #SeqProp Generator Model definitions
 
 #Generator that samples a single one-hot sequence per trainable PWM
-def build_generator(seq_length, n_sequences=1, n_samples=None, sequence_templates=None, init_sequences=None, p_init=0.5, batch_normalize_pwm=False) :
+def build_generator(seq_length, n_sequences=1, n_samples=None, sequence_templates=None, init_sequences=None, p_init=0.5, batch_normalize_pwm=False, pwm_transform_func=None) :
 
 	use_samples = True
 	if n_samples is None :
@@ -178,6 +178,11 @@ def build_generator(seq_length, n_sequences=1, n_samples=None, sequence_template
 	
 	#Sample proper One-hot coded sequences from PWMs
 	sampled_pwm = Lambda(sample_pwm, name='pwm_sampler')(pwm_logits)
+	
+	#PWM & Sampled One-hot custom transform function
+	if pwm_transform_func is not None :
+		pwm = Lambda(lambda pwm_seq: pwm_transform_func(pwm_seq))(pwm)
+		sampled_pwm = Lambda(lambda pwm_seq: pwm_transform_func(pwm_seq))(sampled_pwm)
 	
 	#Optionally create sample axis
 	if use_samples :
