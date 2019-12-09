@@ -65,7 +65,7 @@ def get_target_entropy_ame(pwm_start=0, pwm_end=100, target_bits=2.0) :
     
     return target_entropy_ame
 
-def get_margin_entropy(pwm_start=0, pwm_end=100, min_bits=1.0) :
+def get_margin_entropy(pwm_start=0, pwm_end=100, min_bits=2.0) :
     
     def margin_entropy(pwm) :
         pwm_section = pwm[:, pwm_start:pwm_end, :, :]

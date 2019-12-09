@@ -20,7 +20,8 @@ from keras import backend as K
 def letterAt(letter, x, y, yscale=1, ax=None, color=None, alpha=1.0):
 
 	#fp = FontProperties(family="Arial", weight="bold")
-	fp = FontProperties(family="Ubuntu", weight="bold")
+	#fp = FontProperties(family="Ubuntu", weight="bold")
+	fp = FontProperties(family="DejaVu Sans", weight="bold")
 	globscale = 1.35
 	LETTERS = {	"T" : TextPath((-0.305, 0), "T", size=1, prop=fp),
 				"G" : TextPath((-0.384, 0), "G", size=1, prop=fp),
@@ -94,9 +95,9 @@ def plot_seqprop_logo(pwm, iso_pred, cut_pred, cse_start_pos=70, annotate_peaks=
 	
 	annot_text = 'Samples = ' + str(int(n_samples))
 	if usage_unit == 'log' :
-		annot_text += '\nUsage = ' + str(round(np.log(iso_pred[0] / (1. - iso_pred[0])), 4))
+		annot_text += '\nScore = ' + str(round(np.log(iso_pred[0] / (1. - iso_pred[0])), 4))
 	else :
-		annot_text += '\nUsage = ' + str(round(iso_pred[0], 4))
+		annot_text += '\nScore = ' + str(round(iso_pred[0], 4))
 		
 	ax2.text(0.99, 0.5, annot_text, horizontalalignment='right', verticalalignment='center', transform=ax2.transAxes, color='black', fontsize=12, weight="bold")
 
@@ -181,7 +182,7 @@ def plot_seqprop_logo(pwm, iso_pred, cut_pred, cse_start_pos=70, annotate_peaks=
 
 #Sequence optimization monitor during training
 class SeqPropMonitor(Callback):
-	def __init__(self, predictor, plot_every_epoch=False, track_every_step=False, cse_start_pos=70, isoform_start=80, isoform_end=110, dedicated_isoform_pred=False, pwm_start=0, pwm_end=100, sequence_template='', plot_pwm_indices=[]) :
+	def __init__(self, predictor, plot_every_epoch=False, track_every_step=False, cse_start_pos=70, isoform_start=80, isoform_end=110, dedicated_isoform_pred=False, pwm_start=0, pwm_end=100, sequence_template='', plot_pwm_indices=[], figsize=(9, 1.5)) :
 		self.predictor = predictor
 		self.plot_every_epoch = plot_every_epoch
 		self.track_every_step = track_every_step
@@ -193,6 +194,7 @@ class SeqPropMonitor(Callback):
 		self.sequence_template = sequence_template
 		self.dedicated_isoform_pred = dedicated_isoform_pred
 		self.cse_start_pos = cse_start_pos
+		self.figsize = figsize
 		
 		self.iso_history = []
 		self.entropy_history = []
@@ -334,7 +336,7 @@ class SeqPropMonitor(Callback):
 			plt.show()
 
 			#Plot chosen PWM sequence logos
-			figsize=(9, 1.5)
+			figsize=self.figsize
 
 			plot_start = self.pwm_start
 			plot_end = self.pwm_end
@@ -379,7 +381,7 @@ class SeqPropMonitor(Callback):
 			plt.show()
 
 			#Plot chosen PWM sequence logos
-			figsize=(9, 1.5)
+			figsize=self.figsize
 
 			plot_start = self.pwm_start
 			plot_end = self.pwm_end
@@ -634,3 +636,168 @@ class FlexibleSeqPropMonitor(Callback):
 				pwm = np.expand_dims(optimized_pwm[pwm_index, :, :, 0], axis=0)
 
 				plot_simple_seqprop_logo(pwm, sequence_template=self.sequence_template, figsize=figsize, logo_height=0.8, plot_start=plot_start, plot_end=plot_end)
+
+#Sequence optimization monitor during training
+class FlexibleSeqPropCutMonitor(Callback):
+	def __init__(self, predictor, plot_on_train_end=False, plot_every_epoch=False, track_every_step=False, measure_func=None, measure_name='Measure', plot_pwm_indices=[], plot_pwm_start=0, plot_pwm_end=100, sequence_template='', figsize=(9, 1.5)) :
+		self.predictor = predictor
+		self.plot_every_epoch = plot_every_epoch
+		self.plot_on_train_end = plot_on_train_end
+		self.track_every_step = track_every_step
+		self.plot_pwm_indices = plot_pwm_indices
+		self.plot_pwm_start = plot_pwm_start
+		self.plot_pwm_end = plot_pwm_end
+		self.sequence_template = sequence_template
+		self.measure_func = measure_func
+		self.measure_name = measure_name
+		self.figsize = figsize
+
+		self.measure_history = []
+		self.entropy_history = []
+		self.nt_swap_history = []
+		self.prev_optimized_pwm = None
+
+		self.n_epochs = 0
+
+		pred_bundle = self.predictor.predict(x=None, steps=1)
+		optimized_pwm = pred_bundle[1]
+		optimized_measure = measure_func(pred_bundle[3:])
+
+		#Track metrics
+		self._track_measure_history(optimized_measure)
+		self._track_entropy_history(optimized_pwm)
+
+		self.prev_optimized_pwm = optimized_pwm
+		self.nt_swap_history.append(np.zeros((optimized_pwm.shape[0], 1)))
+
+	def _track_measure_history(self, optimized_measure) :
+		self.measure_history.append(optimized_measure)
+
+	def _track_entropy_history(self, optimized_pwm) :
+		pwm_section = optimized_pwm[:, self.plot_pwm_start:self.plot_pwm_end, :, :]
+		entropy = pwm_section * -np.log(np.clip(pwm_section, 10**(-6), 1. - 10**(-6))) / np.log(2.0)
+		entropy = np.sum(entropy, axis=(2, 3))
+		conservation = 2.0 - entropy
+		mean_bits = np.expand_dims(np.mean(conservation, axis=-1), axis=-1)
+		self.entropy_history.append(mean_bits)
+
+	def _track_nt_swap_history(self, optimized_pwm) :
+		nt_swaps = np.zeros((optimized_pwm.shape[0], 1))
+		nt_swaps[:, 0] = self.nt_swap_history[-1][:, 0]
+
+		for i in range(optimized_pwm.shape[0]) :
+			for j in range(self.plot_pwm_start, self.plot_pwm_end) :
+				curr_max_nt = np.argmax(optimized_pwm[i, j, :, 0])
+				prev_max_nt = np.argmax(self.prev_optimized_pwm[i, j, :, 0])
+
+				if curr_max_nt != prev_max_nt :
+					nt_swaps[i, 0] += 1
+
+		self.nt_swap_history.append(nt_swaps)
+
+	def _plot_metric_on_axis(self, ax, epoch_history, metric_label) :
+		epoch_mat = np.concatenate(epoch_history, axis=-1)
+		for i in range(epoch_mat.shape[0]) :
+			ax.plot(np.arange(epoch_mat.shape[1]), epoch_mat[i, :], linewidth=2)
+
+		plt.sca(ax)
+		plt.title(metric_label, fontsize=14)
+		plt.xlabel("Epoch", fontsize=14)
+		plt.ylabel(metric_label, fontsize=14)
+
+		#if epoch_mat.shape[1] <= 15 :
+		#	plt.xticks(np.arange(epoch_mat.shape[1]), np.arange(epoch_mat.shape[1]), fontsize=14)
+		#else :
+		#	plt.xticks([0, epoch_mat.shape[1] - 1], [0, epoch_mat.shape[1] - 1], fontsize=14)
+		plt.xticks([0, epoch_mat.shape[1] - 1], [0, self.n_epochs], fontsize=14)
+
+		plt.yticks(fontsize=14)
+
+		plt.xlim(0, epoch_mat.shape[1] - 1)
+		plt.ylim(np.min(epoch_mat) - 0.02 * np.min(epoch_mat) * np.sign(np.min(epoch_mat)), np.max(epoch_mat) + 0.02 * np.max(epoch_mat) * np.sign(np.max(epoch_mat)))
+
+	def on_batch_end(self, batch, logs={}) :
+
+		if self.track_every_step :
+			pred_bundle = self.predictor.predict(x=None, steps=1)
+			optimized_pwm = pred_bundle[1]
+			optimized_measure = self.measure_func(pred_bundle[3:])
+			
+			#Track measures
+			self._track_measure_history(optimized_measure)
+			self._track_entropy_history(optimized_pwm)
+			self._track_nt_swap_history(optimized_pwm)
+
+			#Cache previous pwms
+			self.prev_optimized_pwm = optimized_pwm
+
+	def on_epoch_end(self, epoch, logs={}) :
+		self.n_epochs += 1
+
+		if not self.track_every_step :
+			pred_bundle = self.predictor.predict(x=None, steps=1)
+			optimized_pwm = pred_bundle[1]
+			optimized_measure = self.measure_func(pred_bundle[3:])
+
+			#Track measures
+			self._track_measure_history(optimized_measure)
+			self._track_entropy_history(optimized_pwm)
+			self._track_nt_swap_history(optimized_pwm)
+
+			#Cache previous pwms
+			self.prev_optimized_pwm = optimized_pwm
+
+		if self.plot_every_epoch :
+			self.plot_metrics_and_pwm()
+
+	def on_train_end(self, logs={}) :
+
+		if not self.plot_every_epoch and self.plot_on_train_end :
+			self.plot_metrics_and_pwm()
+
+	def plot_metrics_and_pwm(self, fig_name=None, fig_dpi=150) :
+		pred_bundle = None
+		if self.predictor is not None :
+			pred_bundle = self.predictor.predict(x=None, steps=1)
+			self.cached_pred_bundle = pred_bundle
+		else :
+			pred_bundle = self.cached_pred_bundle
+		optimized_pwm = pred_bundle[1]
+		optimized_measure = self.measure_func(pred_bundle[3:])
+		optimized_cut_pred = pred_bundle[4]
+		if len(optimized_cut_pred.shape) > 2 :
+			optimized_cut_pred = optimized_cut_pred[0, :, :]
+
+		f, ax = plt.subplots(1, 3, figsize=(9, 2.5))
+		save_figs = False
+		if fig_name is not None :
+			save_figs = True
+
+		#Plot isoform usage
+		self._plot_metric_on_axis(ax[0], self.measure_history, self.measure_name)
+
+		#Plot pwm entropy
+		self._plot_metric_on_axis(ax[1], self.entropy_history, "PWM Entropy (bits)")
+
+		#Plot consensus nucleotide swap
+		self._plot_metric_on_axis(ax[2], self.nt_swap_history, "Nucleotide Swaps")
+
+		plt.tight_layout()
+		if save_figs :
+			plt.savefig(fig_name + '_metrics.png', transparent=True, dpi=fig_dpi)
+			plt.savefig(fig_name + '_metrics.svg')
+			plt.savefig(fig_name + '_metrics.eps')
+		plt.show()
+
+		#Plot chosen PWM sequence logos
+		figsize=self.figsize
+
+		plot_start = self.plot_pwm_start
+		plot_end = self.plot_pwm_end
+
+		for pwm_index in self.plot_pwm_indices :
+			pwm = np.expand_dims(optimized_pwm[pwm_index, :, :, 0], axis=0)
+			cut = np.expand_dims(optimized_cut_pred[pwm_index, :], axis=0)
+			meas = np.expand_dims(self.measure_history[-1][pwm_index, :], axis=0)
+
+			plot_seqprop_logo(pwm, meas, cut, cse_start_pos=70, annotate_peaks='max', sequence_template=self.sequence_template, figsize=figsize, width_ratios=[1, 8], logo_height=0.8, usage_unit='score', plot_start=plot_start, plot_end=plot_end, save_figs=save_figs, fig_name=fig_name + 'pwm_' + str(pwm_index) if fig_name is not None else None, fig_dpi=fig_dpi)
