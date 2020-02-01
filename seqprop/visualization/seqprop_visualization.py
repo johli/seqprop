@@ -396,7 +396,7 @@ class SeqPropMonitor(Callback):
 
 #Flexible (non-APA-specific) monitor classes and plotting tools for SeqProp
 
-def plot_simple_seqprop_logo(pwm, sequence_template=None, figsize=(12, 3), logo_height=1.0, plot_start=0, plot_end=164) :
+def plot_simple_seqprop_logo(pwm, sequence_template=None, figsize=(12, 3), logo_height=1.0, plot_start=0, plot_end=164, save_figs=False, fig_name=None, fig_dpi=300) :
 
 	n_samples = pwm.shape[0]
 
@@ -463,17 +463,23 @@ def plot_simple_seqprop_logo(pwm, sequence_template=None, figsize=(12, 3), logo_
 	for axis in fig.axes :
 		axis.get_xaxis().set_visible(False)
 		axis.get_yaxis().set_visible(False)
-
+	
 	plt.tight_layout()
+	
+	if save_figs :
+		plt.savefig(fig_name + '.png', transparent=True, dpi=fig_dpi)
+		plt.savefig(fig_name + '.svg')
+		plt.savefig(fig_name + '.eps')
 
 	plt.show()
 	#plt.close()
 
 #Sequence optimization monitor during training
 class FlexibleSeqPropMonitor(Callback):
-	def __init__(self, predictor, plot_every_epoch=False, track_every_step=False, measure_func=None, measure_name='Measure', plot_pwm_indices=[], plot_pwm_start=0, plot_pwm_end=100, sequence_template='') :
+	def __init__(self, predictor, plot_on_train_end=False, plot_every_epoch=False, track_every_step=False, measure_func=None, measure_name='Measure', plot_pwm_indices=[], plot_pwm_start=0, plot_pwm_end=100, sequence_template='', figsize=(9, 1.5)) :
 		self.predictor = predictor
 		self.plot_every_epoch = plot_every_epoch
+		self.plot_on_train_end = plot_on_train_end
 		self.track_every_step = track_every_step
 		self.plot_pwm_indices = plot_pwm_indices
 		self.plot_pwm_start = plot_pwm_start
@@ -481,6 +487,7 @@ class FlexibleSeqPropMonitor(Callback):
 		self.sequence_template = sequence_template
 		self.measure_func = measure_func
 		self.measure_name = measure_name
+		self.figsize = figsize
 
 		self.measure_history = []
 		self.entropy_history = []
@@ -564,11 +571,10 @@ class FlexibleSeqPropMonitor(Callback):
 	def on_epoch_end(self, epoch, logs={}) :
 		self.n_epochs += 1
 
-		pred_bundle = self.predictor.predict(x=None, steps=1)
-		optimized_pwm = pred_bundle[1]
-		optimized_measure = self.measure_func(pred_bundle[3:])
-		
 		if not self.track_every_step :
+			pred_bundle = self.predictor.predict(x=None, steps=1)
+			optimized_pwm = pred_bundle[1]
+			optimized_measure = self.measure_func(pred_bundle[3:])
 
 			#Track measures
 			self._track_measure_history(optimized_measure)
@@ -579,63 +585,54 @@ class FlexibleSeqPropMonitor(Callback):
 			self.prev_optimized_pwm = optimized_pwm
 
 		if self.plot_every_epoch :
-
-			f, ax = plt.subplots(1, 3, figsize=(9, 2.5))
-
-			#Plot isoform usage
-			self._plot_metric_on_axis(ax[0], self.measure_history, self.measure_name)
-
-			#Plot pwm entropy
-			self._plot_metric_on_axis(ax[1], self.entropy_history, "PWM Entropy (bits)")
-
-			#Plot consensus nucleotide swap
-			self._plot_metric_on_axis(ax[2], self.nt_swap_history, "Nucleotide Swaps")
-
-			plt.tight_layout()
-			plt.show()
-
-			#Plot chosen PWM sequence logos
-			figsize=(9, 1.5)
-
-			plot_start = self.plot_pwm_start
-			plot_end = self.plot_pwm_end
-
-			for pwm_index in self.plot_pwm_indices :
-				pwm = np.expand_dims(optimized_pwm[pwm_index, :, :, 0], axis=0)
-
-				plot_simple_seqprop_logo(pwm, sequence_template=self.sequence_template, figsize=figsize, logo_height=0.8, plot_start=plot_start, plot_end=plot_end)
+			self.plot_metrics_and_pwm()
 
 	def on_train_end(self, logs={}) :
 
-		if not self.plot_every_epoch :
+		if not self.plot_every_epoch and self.plot_on_train_end :
+			self.plot_metrics_and_pwm()
+
+	def plot_metrics_and_pwm(self, fig_name=None, fig_dpi=150) :
+		pred_bundle = None
+		if self.predictor is not None :
 			pred_bundle = self.predictor.predict(x=None, steps=1)
-			optimized_pwm = pred_bundle[1]
-			optimized_measure = self.measure_func(pred_bundle[3:])
+			self.cached_pred_bundle = pred_bundle
+		else :
+			pred_bundle = self.cached_pred_bundle
+		optimized_pwm = pred_bundle[1]
+		optimized_measure = self.measure_func(pred_bundle[3:])
 
-			f, ax = plt.subplots(1, 3, figsize=(9, 2.5))
+		f, ax = plt.subplots(1, 3, figsize=(9, 2.5))
+		save_figs = False
+		if fig_name is not None :
+			save_figs = True
 
-			#Plot isoform usage
-			self._plot_metric_on_axis(ax[0], self.measure_history, self.measure_name)
+		#Plot isoform usage
+		self._plot_metric_on_axis(ax[0], self.measure_history, self.measure_name)
 
-			#Plot pwm entropy
-			self._plot_metric_on_axis(ax[1], self.entropy_history, "PWM Entropy (bits)")
+		#Plot pwm entropy
+		self._plot_metric_on_axis(ax[1], self.entropy_history, "PWM Entropy (bits)")
 
-			#Plot consensus nucleotide swap
-			self._plot_metric_on_axis(ax[2], self.nt_swap_history, "Nucleotide Swaps")
+		#Plot consensus nucleotide swap
+		self._plot_metric_on_axis(ax[2], self.nt_swap_history, "Nucleotide Swaps")
 
-			plt.tight_layout()
-			plt.show()
+		plt.tight_layout()
+		if save_figs :
+			plt.savefig(fig_name + '_metrics.png', transparent=True, dpi=fig_dpi)
+			plt.savefig(fig_name + '_metrics.svg')
+			plt.savefig(fig_name + '_metrics.eps')
+		plt.show()
 
-			#Plot chosen PWM sequence logos
-			figsize=(9, 1.5)
+		#Plot chosen PWM sequence logos
+		figsize=self.figsize
 
-			plot_start = self.plot_pwm_start
-			plot_end = self.plot_pwm_end
+		plot_start = self.plot_pwm_start
+		plot_end = self.plot_pwm_end
 
-			for pwm_index in self.plot_pwm_indices :
-				pwm = np.expand_dims(optimized_pwm[pwm_index, :, :, 0], axis=0)
+		for pwm_index in self.plot_pwm_indices :
+			pwm = np.expand_dims(optimized_pwm[pwm_index, :, :, 0], axis=0)
+			plot_simple_seqprop_logo(pwm, sequence_template=self.sequence_template, figsize=figsize, logo_height=0.8, plot_start=plot_start, plot_end=plot_end, save_figs=save_figs, fig_name=fig_name + 'pwm_' + str(pwm_index) if fig_name is not None else None, fig_dpi=fig_dpi)
 
-				plot_simple_seqprop_logo(pwm, sequence_template=self.sequence_template, figsize=figsize, logo_height=0.8, plot_start=plot_start, plot_end=plot_end)
 
 #Sequence optimization monitor during training
 class FlexibleSeqPropCutMonitor(Callback):

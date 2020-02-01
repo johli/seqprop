@@ -180,6 +180,14 @@ def st_hardmax_softmax(logits):
 def st_mul(op, grad):
 	return [grad, grad]
 
+def st_sampled(logits):
+	with ops.name_scope("STSampled") as namescope :
+		#nt_probs = tf.nn.softmax(logits)
+		onehot_dim = logits.get_shape().as_list()[1]
+		sampled_onehot = tf.one_hot(tf.squeeze(tf.multinomial(logits, 1), 1), onehot_dim, 1.0, 0.0)
+		with tf.get_default_graph().gradient_override_map({'Ceil': 'Identity', 'Mul': 'STMul', 'Softmax' : 'Identity'}):
+			return tf.ceil(sampled_onehot * tf.nn.softmax(logits))
+
 #PWM Masking and Sampling helper functions
 
 def mask_pwm(inputs) :
@@ -193,6 +201,15 @@ def sample_pwm_only(pwm_logits) :
 	
 	flat_pwm = K.reshape(pwm_logits, (n_sequences * seq_length, 4))
 	sampled_pwm = st_sampled_softmax(flat_pwm)
+
+	return K.reshape(sampled_pwm, (n_sequences, seq_length, 4, 1))
+
+def sample_pwm_simple(pwm_logits) :
+	n_sequences = pwm_logits.get_shape().as_list()[0]
+	seq_length = pwm_logits.get_shape().as_list()[1]
+	
+	flat_pwm = K.reshape(pwm_logits, (n_sequences * seq_length, 4))
+	sampled_pwm = st_sampled(flat_pwm)
 
 	return K.reshape(sampled_pwm, (n_sequences, seq_length, 4, 1))
 
@@ -214,6 +231,22 @@ def max_pwm(pwm_logits) :
 
 	return K.reshape(sampled_pwm, (n_sequences, seq_length, 4, 1))
 
+#Gumbel-Softmax (The Concrete Distribution) for annealed nucleotide sampling
+
+def gumbel_softmax(logits, temperature=0.1) :
+	gumbel_dist = tf.contrib.distributions.RelaxedOneHotCategorical(temperature, logits=logits)
+	batch_dim = logits.get_shape().as_list()[0]
+	onehot_dim = logits.get_shape().as_list()[1]
+	return gumbel_dist.sample()
+
+def sample_gumbel(pwm_logits) :
+	n_sequences = K.shape(pwm_logits)[0]
+	seq_length = K.shape(pwm_logits)[1]
+	
+	flat_pwm = K.reshape(pwm_logits, (n_sequences * seq_length, 4))
+	sampled_pwm = gumbel_softmax(flat_pwm, temperature=0.1)
+
+	return K.reshape(sampled_pwm, (n_sequences, seq_length, 4, 1))
 
 #SeqProp helper functions
 
@@ -335,6 +368,10 @@ def build_generator(seq_length, n_sequences=1, n_samples=None, sequence_template
 	#Sample proper One-hot coded sequences from PWMs
 	if validation_sample_mode == 'max' :
 		sampled_pwm = Lambda(sample_pwm, name='pwm_sampler')(pwm_logits)
+	elif validation_sample_mode == 'gumbel' :
+		sampled_pwm = Lambda(sample_gumbel, name='pwm_sampler')(pwm_logits)
+	elif validation_sample_mode == 'simple_sample' :
+		sampled_pwm = Lambda(sample_pwm_simple, name='pwm_sampler')(pwm_logits)
 	else :
 		sampled_pwm = Lambda(sample_pwm_only, name='pwm_sampler')(pwm_logits)
 	

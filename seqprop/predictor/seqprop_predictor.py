@@ -45,7 +45,8 @@ def build_predictor(generator_model, load_predictor_function, n_sequences=1, n_s
 	#Optionally create sample axis
 	if use_samples :
 		predictor_outputs = [
-			Lambda(lambda x: K.reshape(x, (n_samples, n_sequences, K.shape(x)[-1])))(predictor_output)
+			#Lambda(lambda x: K.reshape(x, (n_samples, n_sequences, K.shape(x)[-1])))(predictor_output)
+			Lambda(lambda x: K.reshape(x, K.concatenate([K.constant([n_samples, n_sequences], dtype=tf.int32), K.shape(x)[1:]], axis=0)))(predictor_output)
 			for predictor_output in predictor_outputs
 		]
 

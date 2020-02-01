@@ -14,6 +14,38 @@ __pycache__/
 *.bed
 *.fa
 
+#No example output images
+examples/*.png
+examples/*.svg
+examples/*.eps
+examples/*.zip
+examples/*.tar.gz
+examples/apa/*.png
+examples/apa/*.svg
+examples/apa/*.eps
+examples/apa/*.zip
+examples/apa/*.tar.gz
+examples/deepsea/*.png
+examples/deepsea/*.svg
+examples/deepsea/*.eps
+examples/deepsea/*.zip
+examples/deepsea/*.tar.gz
+examples/dragonn/*.png
+examples/dragonn/*.svg
+examples/dragonn/*.eps
+examples/dragonn/*.zip
+examples/dragonn/*.tar.gz
+examples/mpradragonn/*.png
+examples/mpradragonn/*.svg
+examples/mpradragonn/*.eps
+examples/mpradragonn/*.zip
+examples/mpradragonn/*.tar.gz
+examples/optimus5/*.png
+examples/optimus5/*.svg
+examples/optimus5/*.eps
+examples/optimus5/*.zip
+examples/optimus5/*.tar.gz
+
 #No pickle files
 *.hdf5
 
