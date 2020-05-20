@@ -9,42 +9,53 @@ __pycache__/
 *.csv
 *.mat
 *.npy
-*.npz
+# *.npz
 
 *.bed
 *.fa
 
-#No example output images
+#No example output images, archives or numpy date files
 examples/*.png
 examples/*.svg
 examples/*.eps
 examples/*.zip
 examples/*.tar.gz
+examples/*.npz
 examples/apa/*.png
 examples/apa/*.svg
 examples/apa/*.eps
 examples/apa/*.zip
 examples/apa/*.tar.gz
+examples/apa/*.npz
 examples/deepsea/*.png
 examples/deepsea/*.svg
 examples/deepsea/*.eps
 examples/deepsea/*.zip
 examples/deepsea/*.tar.gz
+examples/deepsea/*.npz
 examples/dragonn/*.png
 examples/dragonn/*.svg
 examples/dragonn/*.eps
 examples/dragonn/*.zip
 examples/dragonn/*.tar.gz
+examples/dragonn/*.npz
 examples/mpradragonn/*.png
 examples/mpradragonn/*.svg
 examples/mpradragonn/*.eps
 examples/mpradragonn/*.zip
 examples/mpradragonn/*.tar.gz
+examples/mpradragonn/*.npz
 examples/optimus5/*.png
 examples/optimus5/*.svg
 examples/optimus5/*.eps
 examples/optimus5/*.zip
 examples/optimus5/*.tar.gz
+examples/optimus5/*.npz
+examples/rosetta/*.png
+examples/rosetta/*.svg
+examples/rosetta/*.eps
+examples/rosetta/*.zip
+examples/rosetta/*.tar.gz
 
 #No pickle files
 *.hdf5

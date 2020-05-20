@@ -19,44 +19,6 @@ from keras.layers import Layer, InputSpec
 from keras import initializers, regularizers, constraints
 
 class InstanceNormalization(Layer):
-	"""Instance normalization layer.
-	Normalize the activations of the previous layer at each step,
-	i.e. applies a transformation that maintains the mean activation
-	close to 0 and the activation standard deviation close to 1.
-	# Arguments
-		axis: Integer, the axis that should be normalized
-			(typically the features axis).
-			For instance, after a `Conv2D` layer with
-			`data_format="channels_first"`,
-			set `axis=1` in `InstanceNormalization`.
-			Setting `axis=None` will normalize all values in each
-			instance of the batch.
-			Axis 0 is the batch dimension. `axis` cannot be set to 0 to avoid errors.
-		epsilon: Small float added to variance to avoid dividing by zero.
-		center: If True, add offset of `beta` to normalized tensor.
-			If False, `beta` is ignored.
-		scale: If True, multiply by `gamma`.
-			If False, `gamma` is not used.
-			When the next layer is linear (also e.g. `nn.relu`),
-			this can be disabled since the scaling
-			will be done by the next layer.
-		beta_initializer: Initializer for the beta weight.
-		gamma_initializer: Initializer for the gamma weight.
-		beta_regularizer: Optional regularizer for the beta weight.
-		gamma_regularizer: Optional regularizer for the gamma weight.
-		beta_constraint: Optional constraint for the beta weight.
-		gamma_constraint: Optional constraint for the gamma weight.
-	# Input shape
-		Arbitrary. Use the keyword argument `input_shape`
-		(tuple of integers, does not include the samples axis)
-		when using this layer as the first layer in a Sequential model.
-	# Output shape
-		Same shape as input.
-	# References
-		- [Layer Normalization](https://arxiv.org/abs/1607.06450)
-		- [Instance Normalization: The Missing Ingredient for Fast Stylization](
-		https://arxiv.org/abs/1607.08022)
-	"""
 	def __init__(self,
 				 axis=None,
 				 epsilon=1e-3,
@@ -199,37 +161,37 @@ def sample_pwm_only(pwm_logits) :
 	n_sequences = pwm_logits.get_shape().as_list()[0]
 	seq_length = pwm_logits.get_shape().as_list()[1]
 	
-	flat_pwm = K.reshape(pwm_logits, (n_sequences * seq_length, 4))
+	flat_pwm = K.reshape(pwm_logits, (n_sequences * seq_length, 20))
 	sampled_pwm = st_sampled_softmax(flat_pwm)
 
-	return K.reshape(sampled_pwm, (n_sequences, seq_length, 4, 1))
+	return K.reshape(sampled_pwm, (n_sequences, seq_length, 20, 1))
 
 def sample_pwm_simple(pwm_logits) :
 	n_sequences = pwm_logits.get_shape().as_list()[0]
 	seq_length = pwm_logits.get_shape().as_list()[1]
 	
-	flat_pwm = K.reshape(pwm_logits, (n_sequences * seq_length, 4))
+	flat_pwm = K.reshape(pwm_logits, (n_sequences * seq_length, 20))
 	sampled_pwm = st_sampled(flat_pwm)
 
-	return K.reshape(sampled_pwm, (n_sequences, seq_length, 4, 1))
+	return K.reshape(sampled_pwm, (n_sequences, seq_length, 20, 1))
 
 def sample_pwm(pwm_logits) :
 	n_sequences = pwm_logits.get_shape().as_list()[0]
 	seq_length = pwm_logits.get_shape().as_list()[1]
 	
-	flat_pwm = K.reshape(pwm_logits, (n_sequences * seq_length, 4))
+	flat_pwm = K.reshape(pwm_logits, (n_sequences * seq_length, 20))
 	sampled_pwm = K.switch(K.learning_phase(), st_sampled_softmax(flat_pwm), st_hardmax_softmax(flat_pwm))
 
-	return K.reshape(sampled_pwm, (n_sequences, seq_length, 4, 1))
+	return K.reshape(sampled_pwm, (n_sequences, seq_length, 20, 1))
 
 def max_pwm(pwm_logits) :
 	n_sequences = pwm_logits.get_shape().as_list()[0]
 	seq_length = pwm_logits.get_shape().as_list()[1]
 	
-	flat_pwm = K.reshape(pwm_logits, (n_sequences * seq_length, 4))
+	flat_pwm = K.reshape(pwm_logits, (n_sequences * seq_length, 20))
 	sampled_pwm = st_hardmax_softmax(flat_pwm)
 
-	return K.reshape(sampled_pwm, (n_sequences, seq_length, 4, 1))
+	return K.reshape(sampled_pwm, (n_sequences, seq_length, 20, 1))
 
 #Gumbel-Softmax (The Concrete Distribution) for annealed nucleotide sampling
 
@@ -243,83 +205,17 @@ def sample_gumbel(pwm_logits) :
 	n_sequences = K.shape(pwm_logits)[0]
 	seq_length = K.shape(pwm_logits)[1]
 	
-	flat_pwm = K.reshape(pwm_logits, (n_sequences * seq_length, 4))
+	flat_pwm = K.reshape(pwm_logits, (n_sequences * seq_length, 20))
 	sampled_pwm = gumbel_softmax(flat_pwm, temperature=0.1)
 
-	return K.reshape(sampled_pwm, (n_sequences, seq_length, 4, 1))
+	return K.reshape(sampled_pwm, (n_sequences, seq_length, 20, 1))
 
 #SeqProp helper functions
-
-def initialize_sequence_templates(generator, sequence_templates) :
-
-	encoder = iso.OneHotEncoder(seq_length=len(sequence_templates[0]))
-	onehot_templates = np.concatenate([encoder(sequence_template).reshape((1, len(sequence_template), 4, 1)) for sequence_template in sequence_templates], axis=0)
-
-	for i in range(len(sequence_templates)) :
-		sequence_template = sequence_templates[i]
-
-		for j in range(len(sequence_template)) :
-			if sequence_template[j] != 'N' :
-				if sequence_template[j] != 'X' :
-					nt_ix = np.argmax(onehot_templates[i, j, :, 0])
-					onehot_templates[i, j, :, :] = -4
-					onehot_templates[i, j, nt_ix, :] = 10
-				else :
-					onehot_templates[i, j, :, :] = -1
-
-	onehot_masks = np.zeros((len(sequence_templates), len(sequence_templates[0]), 4, 1))
-	for i in range(len(sequence_templates)) :
-		sequence_template = sequence_templates[i]
-
-		for j in range(len(sequence_template)) :
-			if sequence_template[j] == 'N' :
-				onehot_masks[i, j, :, :] = 1.0
-
-
-	generator.get_layer('template_dense').set_weights([onehot_templates.reshape(1, -1)])
-	generator.get_layer('template_dense').trainable = False
-
-	generator.get_layer('mask_dense').set_weights([onehot_masks.reshape(1, -1)])
-	generator.get_layer('mask_dense').trainable = False
-
-def initialize_sequences(generator, init_sequences, p_init) :
-
-	encoder = iso.OneHotEncoder(seq_length=len(init_sequences[0]))
-	onehot_sequences = np.concatenate([encoder(init_sequence).reshape((1, len(init_sequence), 4, 1)) for init_sequence in init_sequences], axis=0)
-
-	onehot_logits = generator.get_layer('policy_pwm').get_weights()[0].reshape((len(init_sequences), len(init_sequences[0]), 4, 1))
-
-	on_logit = np.log(p_init / (1. - p_init))
-
-	p_off = (1. - p_init) / 3.
-	off_logit = np.log(p_off / (1. - p_off))
-
-	for i in range(len(init_sequences)) :
-		init_sequence = init_sequences[i]
-
-		for j in range(len(init_sequence)) :
-			nt_ix = -1
-			if init_sequence[j] == 'A' :
-				nt_ix = 0
-			elif init_sequence[j] == 'C' :
-				nt_ix = 1
-			elif init_sequence[j] == 'G' :
-				nt_ix = 2
-			elif init_sequence[j] == 'T' :
-				nt_ix = 3
-
-			onehot_logits[i, j, :, :] = off_logit
-			if nt_ix != -1 :
-				onehot_logits[i, j, nt_ix, :] = on_logit
-
-	generator.get_layer('policy_pwm').set_weights([onehot_logits.reshape(1, -1)])
-
-
 
 #SeqProp Generator Model definitions
 
 #Generator that samples a single one-hot sequence per trainable PWM
-def build_generator(seq_length, n_sequences=1, n_samples=None, sequence_templates=None, init_sequences=None, p_init=0.5, batch_normalize_pwm=False, pwm_transform_func=None, validation_sample_mode='max', master_generator=None) :
+def build_generator(seq_length, n_sequences=1, n_samples=None, batch_normalize_pwm=False, pwm_transform_func=None, validation_sample_mode='max', master_generator=None) :
 
 	use_samples = True
 	if n_samples is None :
@@ -330,22 +226,15 @@ def build_generator(seq_length, n_sequences=1, n_samples=None, sequence_template
 	ones_input = Input(tensor=K.ones((1, 1)), name='seed_input')
 
 	#Initialize a Lambda layer to reshape flat matrices into PWM tensors
-	reshape_layer = Lambda(lambda x: K.reshape(x, (n_sequences, seq_length, 4, 1)), name='onehot_reshape')
+	reshape_layer = Lambda(lambda x: K.reshape(x, (n_sequences, seq_length, 20, 1)), name='onehot_reshape')
 	
 	#Initialize Template, Masking and Trainable PWMs
-	onehot_template_dense = Dense(n_sequences * seq_length * 4, use_bias=False, kernel_initializer='zeros', name='template_dense')
-	onehot_mask_dense = Dense(n_sequences * seq_length * 4, use_bias=False, kernel_initializer='ones', name='mask_dense')
-	dense_seq_layer = Dense(n_sequences * seq_length * 4, use_bias=False, kernel_initializer='glorot_uniform', name='policy_pwm')
+	dense_seq_layer = Dense(n_sequences * seq_length * 20, use_bias=False, kernel_initializer='glorot_uniform', name='policy_pwm')
 
 	if master_generator is not None :
 		dense_seq_layer = master_generator.get_layer('policy_pwm')
 	
-	#Initialize Templating and Masking Lambda layer
-	masking_layer = Lambda(mask_pwm, output_shape = (seq_length, 4, 1), name='masking_layer')
-	
 	#Get Template, Mask and Trainable PWM logits
-	onehot_template = reshape_layer(onehot_template_dense(ones_input))
-	onehot_mask = reshape_layer(onehot_mask_dense(ones_input))
 	onehot_logits = reshape_layer(dense_seq_layer(ones_input))
 
 	#Batch Normalize PWM Logits
@@ -356,7 +245,7 @@ def build_generator(seq_length, n_sequences=1, n_samples=None, sequence_template
 		onehot_logits = pwm_norm_layer(onehot_logits)
 	
 	#Add Template and Multiply Mask
-	pwm_logits = masking_layer([onehot_logits, onehot_template, onehot_mask])
+	pwm_logits = onehot_logits
 	
 	#Get PWM from logits
 	pwm = Softmax(axis=-2, name='pwm')(pwm_logits)
@@ -382,7 +271,7 @@ def build_generator(seq_length, n_sequences=1, n_samples=None, sequence_template
 	
 	#Optionally create sample axis
 	if use_samples :
-		sampled_pwm = Lambda(lambda x: K.reshape(x, (n_samples, n_sequences, seq_length, 4, 1)))(sampled_pwm)
+		sampled_pwm = Lambda(lambda x: K.reshape(x, (n_samples, n_sequences, seq_length, 20, 1)))(sampled_pwm)
 
 	generator_model = Model(
 		inputs=[
@@ -394,12 +283,6 @@ def build_generator(seq_length, n_sequences=1, n_samples=None, sequence_template
 			sampled_pwm		#Sampled One-hot sequences (n_samples per trainable PWM)
 		]
 	)
-
-	if sequence_templates is not None :
-		initialize_sequence_templates(generator_model, sequence_templates)
-
-	if init_sequences is not None :
-		initialize_sequences(generator_model, init_sequences, p_init)
 
 	#Lock all generator layers except policy layers
 	for generator_layer in generator_model.layers :
