@@ -1,7 +1,7 @@
 ![SeqProp Logo](https://github.com/johli/seqprop/blob/master/SeqProp_Logo.jpg?raw=true)
 
 # SeqProp
-Stochastic Sequence Propagation - A Keras Model for generating functional RNA based on a predictor
+Stochastic Sequence Propagation - A Keras Model for optimizing DNA, RNA and protein sequences based on a predictor
 
 A Python API for constructing generative DNA/RNA Sequence PWM models in Keras. Implements a PWM generator (with support for discrete sampling with ST gradient estimation), a predictor model wrapper and a loss model.
 
