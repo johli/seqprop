@@ -1,9 +1,9 @@
 ![SeqProp Logo](https://github.com/johli/seqprop/blob/master/SeqProp_Logo.jpg?raw=true)
 
 # SeqProp
-Stochastic Sequence Propagation - A Keras Model for optimizing DNA, RNA and protein sequences based on a predictor
+Stochastic Sequence Propagation - A Keras Model for optimizing DNA, RNA and protein sequences based on a predictor.
 
-A Python API for constructing generative DNA/RNA Sequence PWM models in Keras. Implements a PWM generator (with support for discrete sampling with ST gradient estimation), a predictor model wrapper and a loss model.
+A Python API for constructing generative DNA/RNA/protein Sequence PWM models in Keras. Implements a PWM generator (with support for discrete sampling and ST gradient estimation), a predictor model wrapper and a loss model.
 
 #### Features
 - Implements a Sequence PWM Generator as a Keras Model, outputting PWMs, Logits, or random discrete samples from the PWM. These representations can be fed into any downstream Keras model for reinforcement learning.
@@ -86,7 +86,7 @@ _, optimized_pwm, _, predicted_out = seqprop_predictor.predict(x=None, steps=1)
 ```
 
 ### Example Notebooks (Alternative Polyadenylation)
-These examples show how to set up the PWM sequence generator model, hooking it up to a predictor, and defining various loss models. The examples all build on the Alternative Polyadenylation sequence predictor APARENT.
+These examples show how to set up the PWM sequence generator model, hooking it up to a predictor, and defining various loss models. The examples build on the Alternative Polyadenylation sequence predictor APARENT.
 
 [Notebook 1a: Generate Target Isoforms (Predict on PWM)](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/apa/seqprop_aparent_isoform_optimization.ipynb)<br/>
 [Notebook 1b: Generate Target Isoforms (Predict on Sampled One-hots)](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/apa/seqprop_aparent_isoform_optimization_sample.ipynb)<br/>
