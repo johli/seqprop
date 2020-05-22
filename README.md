@@ -88,8 +88,36 @@ _, optimized_pwm, _, predicted_out = seqprop_predictor.predict(x=None, steps=1)
 ### Example Notebooks
 These examples show how to set up the sequence optimization model, hook it to a predictor, and define various loss models. The examples build on different DNA, RNA and protein design tasks using a wide selection of fitness predictors: APARENT [(Bogard et. al., 2019)](https://doi.org/10.1016/j.cell.2019.04.046), Optimus 5' [(Sample et. al., 2019)](https://doi.org/10.1038/s41587-019-0164-5), DragoNN [(Kundaje Lab)](https://github.com/kundajelab/dragonn), MPRA-DragoNN [(Movva et. al., 2019)](https://doi.org/10.1371/journal.pone.0218073), DeepSEA [(Zhou et. al., 2015)](https://doi.org/10.1038/nmeth.3547) and trRosetta [(Yang et. al., 2020)](https://doi.org/10.1073/pnas.1914677117).
 
-
-#### Alternative Polyadenylation
+#### Alternative Polyadenylation (APARENT)
 [Notebook 1a: Generate Target Isoforms (Predict on PWM)](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/apa/seqprop_aparent_isoform_optimization.ipynb)<br/>
 [Notebook 1b: Generate Target Isoforms (Predict on Sampled One-hots)](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/apa/seqprop_aparent_isoform_optimization_sample.ipynb)<br/>
 [Notebook 2: Generate Target 3' Cleavage (Predict on Sampled One-hots)](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/apa/seqprop_aparent_cleavage_optimization.ipynb)<br/>
+[Notebook 3a: Evaluate Logit-Normalization](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/apa/seqprop_aparent_isoform_optimization_eval_instancenorm_earthmover.ipynb)<br/>
+[Notebook 3b: Evaluate Logit-Normalization (Different Gradient Estimators)](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/apa/seqprop_aparent_isoform_optimization_eval_instancenorm_earthmover_gradient_estimators.ipynb)<br/>
+[Notebook 3c: Evaluate Logit-Normalization (Gumbel Sampler)](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/apa/seqprop_aparent_isoform_optimization_eval_instancenorm_earthmover_vs_evolution_and_gumbel.ipynb)<br/>
+[Notebook 3d: Evaluate Logit-Normalization (Explicit Entropy Penalty)](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/apa/seqprop_aparent_isoform_optimization_eval_instancenorm_earthmover_w_entropy_penalty.ipynb)<br/>
+[Notebook 3e: Evaluate Logit-Normalization (Optimizer Settings)](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/apa/seqprop_aparent_isoform_optimization_eval_instancenorm_sgd_lr_earthmover.ipynb)<br/>
+
+#### Basic (Pretend-predictor)
+[Notebook 1: Apply Sequence Transforms Before Predictor](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/basic/seqprop_basic_sequence_transform.ipynb)<br/>
+
+#### Translational Efficiency (Optimus 5')
+[Notebook 1: Evaluate Logit-Normalization](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/optimus5/seqprop_optimus5_optimization_eval_instancenorm_earthmover_non_retrained.ipynb)<br/>
+
+#### CTCF TF Binding (DeepSEA, Dnd41)
+[Notebook 1: Evaluate Logit-Normalization](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/deepsea/seqprop_deepsea_optimization_eval_instancenorm_earthmover.ipynb)<br/>
+
+#### Transcriptional Activity (MPRA-DragoNN, SV40, Mean Activity)
+[Notebook 1: Evaluate Logit-Normalization](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/mpradragonn/seqprop_mpradragonn_optimization_earthmover_k562_sv40_promoter_deep_factorized_model_eval_instancenorm.ipynb)<br/>
+
+#### SPI1 TF Binding (DragoNN)
+[Notebook 1a: Evaluate Logit-Normalization](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/dragonn/seqprop_dragonn_optimization_eval_instancenorm_earthmover.ipynb)<br/>
+[Notebook 1b: Evaluate Logit-Normalization (Different Gradient Estimator)](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/dragonn/seqprop_dragonn_optimization_eval_instancenorm_earthmover_gradient_estimators.ipynb)<br/>
+[Notebook 1c: Evaluate Logit-Normalization (Gumbel Sampler)](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/dragonn/https://github.com/johli/seqprop/blob/master/examples/dragonn/seqprop_dragonn_optimization_eval_instancenorm_earthmover_vs_evolution_and_gumbel.ipynb)<br/>
+[Notebook 1d: Evaluate Logit-Normalization (Vs. Simulated Annealing)](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/dragonn/seqprop_dragonn_optimization_eval_instancenorm_earthmover_vs_evolution_and_basinhopping.ipynb)<br/>
+
+#### Target Protein Structure (trRosetta)
+[Notebook 1a: Kinase Protein (No MSA)](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/rosetta/seqprop_rosetta_optimization_eval_layernorm_and_basinhopping_T1001_no_msa_1000_updates_multiple_seeds.ipynb)<br/>
+[Notebook 1b: Coiled-Coil Hairpin (No MSA)](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/rosetta/seqprop_rosetta_optimization_eval_layernorm_and_basinhopping_TR005257_no_msa_1000_updates_multiple_seeds.ipynb)<br/>
+[Notebook 2a: Kinase Protein (With MSA)](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/rosetta/seqprop_rosetta_optimization_eval_layernorm_and_basinhopping_T1001_with_msa_1000_updates.ipynb)<br/>
+[Notebook 2b: Coiled-Coil Hairpin (With MSA)](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/rosetta/seqprop_rosetta_optimization_eval_layernorm_and_basinhopping_TR005257_with_msa_1000_updates.ipynb)<br/>
