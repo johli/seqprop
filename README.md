@@ -85,9 +85,11 @@ _, optimized_pwm, _, predicted_out = seqprop_predictor.predict(x=None, steps=1)
 
 ```
 
-### Example Notebooks (Alternative Polyadenylation)
-These examples show how to set up the PWM sequence generator model, hooking it up to a predictor, and defining various loss models. The examples build on the Alternative Polyadenylation sequence predictor APARENT.
+### Example Notebooks
+These examples show how to set up the sequence optimization model, hook it to a predictor, and define various loss models. The examples build on different DNA, RNA and protein design tasks using a wide selection of fitness predictors: APARENT [(Bogard et. al., 2019)](https://doi.org/10.1016/j.cell.2019.04.046), Optimus 5' [(Sample et. al., 2019)](https://doi.org/10.1038/s41587-019-0164-5), DragoNN [(Kundaje Lab)](https://github.com/kundajelab/dragonn), MPRA-DragoNN [(Movva et. al., 2019)](https://doi.org/10.1371/journal.pone.0218073), DeepSEA [(Zhou et. al., 2015)](https://doi.org/10.1038/nmeth.3547) and trRosetta [(Yang et. al., 2020)](https://doi.org/10.1073/pnas.1914677117).
 
+
+#### Alternative Polyadenylation
 [Notebook 1a: Generate Target Isoforms (Predict on PWM)](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/apa/seqprop_aparent_isoform_optimization.ipynb)<br/>
 [Notebook 1b: Generate Target Isoforms (Predict on Sampled One-hots)](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/apa/seqprop_aparent_isoform_optimization_sample.ipynb)<br/>
 [Notebook 2: Generate Target 3' Cleavage (Predict on Sampled One-hots)](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/apa/seqprop_aparent_cleavage_optimization.ipynb)<br/>
