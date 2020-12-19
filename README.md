@@ -117,7 +117,5 @@ These examples show how to set up the sequence optimization model, hook it to a 
 [Notebook 1d: Evaluate Logit-Normalization (Vs. Simulated Annealing)](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/dragonn/seqprop_dragonn_optimization_eval_instancenorm_earthmover_vs_evolution_and_basinhopping.ipynb)<br/>
 
 #### Target Protein Structure (trRosetta)
-[Notebook 1a: Kinase Protein (No MSA)](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/rosetta/seqprop_rosetta_optimization_eval_layernorm_and_basinhopping_T1001_no_msa_1000_updates_multiple_seeds.ipynb)<br/>
-[Notebook 1b: Coiled-Coil Hairpin (No MSA)](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/rosetta/seqprop_rosetta_optimization_eval_layernorm_and_basinhopping_TR005257_no_msa_1000_updates_multiple_seeds.ipynb)<br/>
-[Notebook 2a: Kinase Protein (With MSA)](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/rosetta/seqprop_rosetta_optimization_eval_layernorm_and_basinhopping_T1001_with_msa_1000_updates.ipynb)<br/>
-[Notebook 2b: Coiled-Coil Hairpin (With MSA)](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/rosetta/seqprop_rosetta_optimization_eval_layernorm_and_basinhopping_TR005257_with_msa_1000_updates.ipynb)<br/>
+[Notebook 1a: Kinase Protein (1000 Updates)](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/rosetta/seqprop_rosetta_optimization_eval_layernorm_and_basinhopping_T1001_no_msa_1000_updates_5_seeds_layer_norm_no_drop.ipynb)<br/>
+[Notebook 1b: Coiled-Coil Hairpin (200 Updates)](https://nbviewer.jupyter.org/github/johli/seqprop/blob/master/examples/rosetta/seqprop_rosetta_optimization_eval_layernorm_and_basinhopping_TR005257_no_msa_200_updates_5_seeds_layer_norm_no_drop.ipynb)<br/>
