@@ -210,12 +210,36 @@ def sample_gumbel(pwm_logits) :
 
 	return K.reshape(sampled_pwm, (n_sequences, seq_length, 20, 1))
 
+def sample_2(pwm_logits) :
+	n_sequences = K.shape(pwm_logits)[0]
+	seq_length = K.shape(pwm_logits)[1]
+	
+	U = tf.random.uniform(tf.shape(pwm_logits), minval=0, maxval=1)
+	
+	y_pssm = tf.nn.softmax(pwm_logits - tf.math.log(-tf.math.log(U + 1e-8) + 1e-8), axis=2)
+	#y_pssm = K.switch(train, y_pssm_sampled, tf.nn.softmax(pwm_logits,-2))
+	
+	y_seq = K.permute_dimensions(tf.one_hot(tf.argmax(y_pssm, axis=2), 20), (0, 1, 3, 2))
+	y_seq = tf.stop_gradient(y_seq - y_pssm) + y_pssm
+	
+	return y_seq
+
+def max_2(pwm_logits) :
+	n_sequences = K.shape(pwm_logits)[0]
+	seq_length = K.shape(pwm_logits)[1]
+	
+	y_pssm = tf.nn.softmax(pwm_logits, axis=2)
+	
+	y_seq = K.permute_dimensions(tf.one_hot(tf.argmax(y_pssm, axis=2), 20), (0, 1, 3, 2))
+	y_seq = tf.stop_gradient(y_seq - y_pssm) + y_pssm
+	
+	return y_seq
 #SeqProp helper functions
 
 #SeqProp Generator Model definitions
 
 #Generator that samples a single one-hot sequence per trainable PWM
-def build_generator(seq_length, n_sequences=1, n_samples=None, batch_normalize_pwm=False, pwm_transform_func=None, validation_sample_mode='max', master_generator=None) :
+def build_generator(seq_length, n_sequences=1, n_samples=None, batch_normalize_pwm=False, pwm_transform_func=None, validation_sample_mode='max', master_generator=None, logit_init_mode='glorot_uniform') :
 
 	use_samples = True
 	if n_samples is None :
@@ -229,7 +253,18 @@ def build_generator(seq_length, n_sequences=1, n_samples=None, batch_normalize_p
 	reshape_layer = Lambda(lambda x: K.reshape(x, (n_sequences, seq_length, 20, 1)), name='onehot_reshape')
 	
 	#Initialize Template, Masking and Trainable PWMs
-	dense_seq_layer = Dense(n_sequences * seq_length * 20, use_bias=False, kernel_initializer='glorot_uniform', name='policy_pwm')
+	
+	kernel_initializer = 'glorot_uniform'
+	if logit_init_mode in ['glorot_uniform', 'glorot_normal'] :
+		kernel_initializer = logit_init_mode
+	elif 'random_normal_' in logit_init_mode :
+		stddev = logit_init_mode[14:]
+		kernel_initializer = initializers.RandomNormal(stddev=float(stddev))
+	elif 'random_uniform_' in logit_init_mode :
+		minval, maxval = logit_init_mode[15:].split("_")
+		kernel_initializer = initializers.RandomUniform(minval=float(minval), maxval=float(maxval))
+	
+	dense_seq_layer = Dense(n_sequences * seq_length * 20, use_bias=False, kernel_initializer=kernel_initializer, name='policy_pwm')
 
 	if master_generator is not None :
 		dense_seq_layer = master_generator.get_layer('policy_pwm')
@@ -261,6 +296,10 @@ def build_generator(seq_length, n_sequences=1, n_samples=None, batch_normalize_p
 		sampled_pwm = Lambda(sample_gumbel, name='pwm_sampler')(pwm_logits)
 	elif validation_sample_mode == 'simple_sample' :
 		sampled_pwm = Lambda(sample_pwm_simple, name='pwm_sampler')(pwm_logits)
+	elif validation_sample_mode == 'sample_2' :
+		sampled_pwm = Lambda(sample_2, name='pwm_sampler')(pwm_logits)
+	elif validation_sample_mode == 'max_2' :
+		sampled_pwm = Lambda(max_2, name='pwm_sampler')(pwm_logits)
 	else :
 		sampled_pwm = Lambda(sample_pwm_only, name='pwm_sampler')(pwm_logits)
 	
